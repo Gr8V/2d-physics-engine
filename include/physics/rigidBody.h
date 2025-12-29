@@ -1,7 +1,7 @@
 #pragma once
 #include "math/Vec2.h"
 
-struct Body {
+struct RigidBody {
     Vec2 position;
     Vec2 velocity;
     Vec2 force;
@@ -9,7 +9,7 @@ struct Body {
     float mass;
     float invMass;
 
-    Body(const Vec2& pos, float m);
+    RigidBody(const Vec2& pos, float m);
 
     void applyForce(const Vec2& f);
     void integrate(float dt);

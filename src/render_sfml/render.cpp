@@ -35,7 +35,7 @@ void render_scene() {
     const float RADIUS = 40.f;
 
     sf::RenderWindow window(
-        sf::VideoMode(sf::Vector2u{800, 600}),
+        sf::VideoMode(sf::Vector2u{WIDTH, HEIGHT}),
         "SFML Multi-Ball Demo"
     );
 
