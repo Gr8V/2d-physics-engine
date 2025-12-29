@@ -2,28 +2,17 @@
 #include <Vec2.h>
 #include <random>
 #include <iostream>
+#include <math_utils.h>
 
 sf::Vector2f toSFML(const Vec2& v) {
     return { v.x, v.y };
 }
-
 
 float randomFloat(float min, float max) {
     static std::mt19937 rng(std::random_device{}());
     std::uniform_real_distribution<float> dist(min, max);
     return dist(rng);
 }
-Vec2 reflect(const Vec2& v, const Vec2& normal) {
-        return v - normal * (2.f * v.dot(normal));
-        }
-        Vec2 rotate(const Vec2& v, float angle) {
-        float c = std::cos(angle);
-        float s = std::sin(angle);
-        return {
-            v.x * c - v.y * s,
-            v.x * s + v.y * c
-        };
-    }
 
 
 void render_scene(){
@@ -101,7 +90,7 @@ void render_scene(){
 
             // Add slight randomness (±10 degrees)
             float angle = randomFloat(-0.17f, 0.17f);
-            velocity = rotate(velocity, angle);
+            velocity = velocity.rotated(angle);
         }
 
         ball.setPosition(toSFML(position));

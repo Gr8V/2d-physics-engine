@@ -51,15 +51,12 @@ struct Vec2 {
         return x * other.x + y * other.y;
     }
 
-    Vec2 reflect(const Vec2& v, const Vec2& normal) {
-        return v - normal * (2.f * v.dot(normal));
-        }
-        Vec2 rotate(const Vec2& v, float angle) {
+    Vec2 rotated(float angle) const {
         float c = std::cos(angle);
         float s = std::sin(angle);
         return {
-            v.x * c - v.y * s,
-            v.x * s + v.y * c
+            x * c - y * s,
+            x * s + y * c
         };
     }
 };
