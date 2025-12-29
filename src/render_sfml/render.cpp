@@ -1,8 +1,12 @@
 #include <SFML/Graphics.hpp>
-#include <Vec2.h>
+#include <vector>
 #include <random>
 #include <iostream>
+
+#include <Vec2.h>
 #include <math_utils.h>
+
+// ------------------ Utilities ------------------
 
 sf::Vector2f toSFML(const Vec2& v) {
     return { v.x, v.y };
@@ -14,91 +18,125 @@ float randomFloat(float min, float max) {
     return dist(rng);
 }
 
+// ------------------ Ball ------------------
 
-void render_scene(){
-    // Create a window (SFML 3 requires Vector2u)
+struct Ball {
+    Vec2 position;
+    Vec2 velocity;
+    sf::CircleShape shape;
+};
+
+// ------------------ Scene ------------------
+
+void render_scene() {
+
+    const float WIDTH  = 800.f;
+    const float HEIGHT = 600.f;
+    const float RADIUS = 40.f;
+
     sf::RenderWindow window(
         sf::VideoMode(sf::Vector2u{800, 600}),
-        "SFML Demo Scene"
+        "SFML Multi-Ball Demo"
     );
+
     window.setFramerateLimit(144);
 
-    // Create a circle
-    sf::CircleShape ball(40.f);
-    ball.setFillColor(sf::Color::Red);
-    Vec2 position{100.0f,300.0f};
-    ball.setPosition(toSFML(position));
-
-    // Velocity
-    Vec2 velocity{600.f, 360.f};
-
+    std::vector<Ball> balls;
     sf::Clock clock;
 
-    // Main loop
+    // ------------------ Main loop ------------------
+
     while (window.isOpen()) {
 
-        // ---- Event handling (SFML 3 style) ----
+        // ---------- Events ----------
         while (const auto event = window.pollEvent()) {
+
             if (event->is<sf::Event::Closed>()) {
                 window.close();
             }
+
+            if (event->is<sf::Event::MouseButtonPressed>()) {
+
+                const auto* mouseEvent =
+                    event->getIf<sf::Event::MouseButtonPressed>();
+
+                if (mouseEvent->button == sf::Mouse::Button::Left) {
+
+                    auto mousePos = sf::Mouse::getPosition(window);
+
+                    Ball ball;
+                    ball.position = {
+                        mousePos.x - RADIUS,
+                        mousePos.y - RADIUS
+                    };
+
+                    ball.velocity = {
+                        randomFloat(-600.f, 600.f),
+                        randomFloat(-600.f, 600.f)
+                    };
+
+                    ball.shape = sf::CircleShape(RADIUS);
+                    ball.shape.setFillColor(sf::Color::Red);
+                    ball.shape.setPosition(toSFML(ball.position));
+
+                    balls.push_back(ball);
+                }
+            }
         }
 
-        // ---- Delta time ----
+        // ---------- Delta time ----------
         float dt = clock.restart().asSeconds();
 
-        // ---- Update ----
-        position += velocity * dt;
+        // ---------- Update ----------
+        for (auto& ball : balls) {
 
-        // Bounce off walls
-        const float radius = ball.getRadius();
-        const float diameter = radius * 2.f;
+            ball.position += ball.velocity * dt;
 
-        const float width = 800.f;
-        const float height = 600.f;
+            const float diameter = RADIUS * 2.f;
+            Vec2 normal;
+            bool bounced = false;
 
-        bool bounced = false;
-        Vec2 normal;
+            if (ball.position.x < 0.f) {
+                ball.position.x = 0.f;
+                normal = { 1.f, 0.f };
+                bounced = true;
+            }
 
-        if (position.x < 0.f) {
-            position.x = 0.f;
-            normal = { 1.f, 0.f };
-            bounced = true;
+            if (ball.position.x + diameter > WIDTH) {
+                ball.position.x = WIDTH - diameter;
+                normal = { -1.f, 0.f };
+                bounced = true;
+            }
+
+            if (ball.position.y < 0.f) {
+                ball.position.y = 0.f;
+                normal = { 0.f, 1.f };
+                bounced = true;
+            }
+
+            if (ball.position.y + diameter > HEIGHT) {
+                ball.position.y = HEIGHT - diameter;
+                normal = { 0.f, -1.f };
+                bounced = true;
+            }
+
+            if (bounced) {
+                ball.velocity = reflect(ball.velocity, normal);
+                ball.velocity = ball.velocity.rotated(
+                    randomFloat(-0.17f, 0.17f)
+                );
+            }
+
+            ball.shape.setPosition(toSFML(ball.position));
         }
 
-        if (position.x + diameter > width) {
-            position.x = width - diameter;
-            normal = { -1.f, 0.f };
-            bounced = true;
-        }
-
-        if (position.y < 0.f) {
-            position.y = 0.f;
-            normal = { 0.f, 1.f };
-            bounced = true;
-        }
-
-        if (position.y + diameter > height) {
-            position.y = height - diameter;
-            normal = { 0.f, -1.f };
-            bounced = true;
-        }
-
-        if (bounced) {
-            std::cout << "Ball Bounced\n";
-            velocity = reflect(velocity, normal);
-
-            // Add slight randomness (±10 degrees)
-            float angle = randomFloat(-0.17f, 0.17f);
-            velocity = velocity.rotated(angle);
-        }
-
-        ball.setPosition(toSFML(position));
-
-
-        // ---- Render ----
+        // ---------- Render ----------
         window.clear(sf::Color{20, 20, 25});
-        window.draw(ball);
+
+        for (auto& ball : balls) {
+            window.draw(ball.shape);
+        }
+
         window.display();
     }
 }
