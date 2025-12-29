@@ -1,4 +1,30 @@
 #include <SFML/Graphics.hpp>
+#include <Vec2.h>
+#include <random>
+#include <iostream>
+
+sf::Vector2f toSFML(const Vec2& v) {
+    return { v.x, v.y };
+}
+
+
+float randomFloat(float min, float max) {
+    static std::mt19937 rng(std::random_device{}());
+    std::uniform_real_distribution<float> dist(min, max);
+    return dist(rng);
+}
+Vec2 reflect(const Vec2& v, const Vec2& normal) {
+        return v - normal * (2.f * v.dot(normal));
+        }
+        Vec2 rotate(const Vec2& v, float angle) {
+        float c = std::cos(angle);
+        float s = std::sin(angle);
+        return {
+            v.x * c - v.y * s,
+            v.x * s + v.y * c
+        };
+    }
+
 
 void render_scene(){
     // Create a window (SFML 3 requires Vector2u)
@@ -6,15 +32,16 @@ void render_scene(){
         sf::VideoMode(sf::Vector2u{800, 600}),
         "SFML Demo Scene"
     );
-    window.setFramerateLimit(60);
+    window.setFramerateLimit(144);
 
     // Create a circle
     sf::CircleShape ball(40.f);
-    ball.setFillColor(sf::Color::Cyan);
-    ball.setPosition({100.f, 300.f});
+    ball.setFillColor(sf::Color::Red);
+    Vec2 position{100.0f,300.0f};
+    ball.setPosition(toSFML(position));
 
     // Velocity
-    sf::Vector2f velocity{200.f, 0.f};
+    Vec2 velocity{600.f, 360.f};
 
     sf::Clock clock;
 
@@ -32,16 +59,53 @@ void render_scene(){
         float dt = clock.restart().asSeconds();
 
         // ---- Update ----
-        ball.move(velocity * dt);
+        position += velocity * dt;
 
         // Bounce off walls
         const float radius = ball.getRadius();
         const float diameter = radius * 2.f;
 
-        if (ball.getPosition().x < 0.f ||
-            ball.getPosition().x + diameter > 800.f) {
-            velocity.x *= -1.f;
+        const float width = 800.f;
+        const float height = 600.f;
+
+        bool bounced = false;
+        Vec2 normal;
+
+        if (position.x < 0.f) {
+            position.x = 0.f;
+            normal = { 1.f, 0.f };
+            bounced = true;
         }
+
+        if (position.x + diameter > width) {
+            position.x = width - diameter;
+            normal = { -1.f, 0.f };
+            bounced = true;
+        }
+
+        if (position.y < 0.f) {
+            position.y = 0.f;
+            normal = { 0.f, 1.f };
+            bounced = true;
+        }
+
+        if (position.y + diameter > height) {
+            position.y = height - diameter;
+            normal = { 0.f, -1.f };
+            bounced = true;
+        }
+
+        if (bounced) {
+            std::cout << "Ball Bounced\n";
+            velocity = reflect(velocity, normal);
+
+            // Add slight randomness (±10 degrees)
+            float angle = randomFloat(-0.17f, 0.17f);
+            velocity = rotate(velocity, angle);
+        }
+
+        ball.setPosition(toSFML(position));
+
 
         // ---- Render ----
         window.clear(sf::Color{20, 20, 25});
