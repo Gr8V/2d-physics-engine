@@ -19,3 +19,18 @@ void addBall(
     float radius,
     float mass
 );
+
+struct Rectangle {
+    RigidBody body;
+    BoxCollider collider;
+    sf::RectangleShape shape;
+};
+
+void addRectangle(
+    PhysicsWorld& world,
+    std::deque<Rectangle>& rectangles,
+    Vec2 position,
+    float width,
+    float height,
+    float mass
+);

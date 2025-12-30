@@ -8,7 +8,7 @@
 #include <math_utils.h>
 #include <physicsWorld.h>
 #include <deque>
-#include <ball.h>
+#include <objects.h>
 
 // ------------------ Scene ------------------
 
@@ -21,6 +21,7 @@ void render_scene() {
     const float FIXED_DT = 1.f / 60.f;
     static float accumulator = 0.f;
     std::deque<Ball> balls;
+    std::deque<Rectangle> rectangles;
 
 
     sf::RenderWindow window(
@@ -31,6 +32,11 @@ void render_scene() {
 
     PhysicsWorld world;
     world.gravity = {0.f, 800.f};
+
+    addBall(world, balls, {340.f, 50.f}, 20.f, 1.f);
+    addBall(world, balls, {360.f, 100.f}, 20.f, 1.f);
+    addBall(world, balls, {380.f, 150.f}, 20.f, 1.f);
+    addBall(world, balls, {400.f, 200.f}, 20.f, 1.f);
     
     //add a floor
     RigidBody RectBody({400.f, 500.f}, 0.f);
@@ -85,7 +91,7 @@ void render_scene() {
                         world,
                         balls,
                         {static_cast<float>(mousePos.x), static_cast<float>(mousePos.y)},
-                        20.f,
+                        50.f,
                         1.f
                     );
                 }
@@ -106,6 +112,12 @@ void render_scene() {
                 ball.body.position.y
             });
         }
+        for (auto& rect : rectangles) {
+            rect.shape.setPosition({
+                rect.body.position.x,
+                rect.body.position.y
+            });
+        }
 
         
 
@@ -113,6 +125,8 @@ void render_scene() {
         window.clear();
         for (auto& ball : balls)
             window.draw(ball.shape);
+        for (auto& rect : rectangles)
+            window.draw(rect.shape);
 
         window.draw(RectShape);
         window.display();
