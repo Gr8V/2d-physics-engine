@@ -5,6 +5,7 @@
 
 #include <Vec2.h>
 #include <math_utils.h>
+#include <physicsWorld.h>
 
 // ------------------ Utilities ------------------
 
@@ -28,14 +29,14 @@ struct Ball {
 
 // ------------------ Scene ------------------
 
-void render_scene() {
+void render_scene_bounce_test() {
 
     const float WIDTH  = 800.f;
     const float HEIGHT = 600.f;
     const float RADIUS = 40.f;
 
     sf::RenderWindow window(
-        sf::VideoMode(sf::Vector2u{WIDTH, HEIGHT}),
+        sf::VideoMode(sf::Vector2u{800, 600}),
         "SFML Multi-Ball Demo"
     );
 
@@ -137,6 +138,69 @@ void render_scene() {
             window.draw(ball.shape);
         }
 
+        window.display();
+    }
+}
+
+
+void render_scene() {
+
+    const float WIDTH  = 800.f;
+    const float HEIGHT = 600.f;
+    const float RADIUS = 40.f;
+
+    sf::RenderWindow window(
+        sf::VideoMode(sf::Vector2u{800, 600}),
+        "SFML Multi-Ball Demo"
+    );
+    window.setFramerateLimit(144);
+
+    PhysicsWorld world;
+    world.gravity = {0.f, 800.f};
+
+    //add a falling ball
+    RigidBody ballBody({400.f, 100.f}, 1.f);
+    CircleCollider ballCollider{20.f};
+    world.add(&ballBody, &ballCollider);
+    sf::CircleShape ballShape(ballCollider.radius);
+    ballShape.setOrigin({ballCollider.radius, ballCollider.radius});
+    ballShape.setFillColor(sf::Color::White);
+
+    //add a floor
+    RigidBody floorBody({400.f, 550.f}, 0.f); // mass = 0 → static
+    CircleCollider floorCollider{300.f};
+    world.add(&floorBody, &floorCollider);
+    sf::CircleShape floorShape(floorCollider.radius);
+    floorShape.setOrigin({floorCollider.radius, floorCollider.radius});
+    floorShape.setPosition({floorBody.position.x, floorBody.position.y});
+    floorShape.setFillColor(sf::Color::White);
+
+
+    sf::Clock clock;
+
+    // ------------------ Main loop ------------------
+
+    while (window.isOpen()) {
+        // ---------- Events ----------
+        while (const auto event = window.pollEvent()) {
+            if (event->is<sf::Event::Closed>()) {
+                window.close();
+            }
+        }
+        // ---------- Delta time ----------
+        float dt = clock.restart().asSeconds();
+
+        // ---------- Update ----------
+        world.step(dt);
+        ballShape.setPosition({
+            ballBody.position.x,
+            ballBody.position.y
+        });
+
+        // ---------- Render ----------
+        window.clear();
+        window.draw(ballShape);
+        window.draw(floorShape);
         window.display();
     }
 }

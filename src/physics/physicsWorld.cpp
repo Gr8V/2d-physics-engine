@@ -1,5 +1,17 @@
 #include <physicsWorld.h>
 
+void PhysicsWorld::add(RigidBody* body, CircleCollider* collider)
+{
+    objects.push_back({ body, collider });
+}
+
+void PhysicsWorld::step(float dt)
+{
+    integrate(dt);
+    solveCollisions();
+}
+
+
 
 void PhysicsWorld::integrate(float dt)
 {
@@ -12,11 +24,6 @@ void PhysicsWorld::integrate(float dt)
 }
 
 void PhysicsWorld::solveCollisions()
-for (size_t i = 0; i < count; i++)
-{
-    /* code */
-}
-
 {
     for (size_t i = 0; i < objects.size(); i++) {
         for (size_t j = i + 1; j < objects.size(); j++) {

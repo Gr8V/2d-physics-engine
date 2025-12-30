@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
-#include "physics/RigidBody.h"
-#include "physics/colliders.h"
+#include <rigidBody.h>
+#include <colliders.h>
 
 struct PhysicsObject {
     RigidBody* body;
