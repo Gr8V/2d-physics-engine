@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <optional>
 #include <vector>
 #include <random>
 #include <iostream>
@@ -30,11 +31,6 @@ void render_scene() {
 
     PhysicsWorld world;
     world.gravity = {0.f, 800.f};
-    
-    addBall(world, balls, {340.f, 50.f}, 20.f, 1.f);
-    addBall(world, balls, {360.f, 100.f}, 20.f, 1.f);
-    addBall(world, balls, {380.f, 150.f}, 20.f, 1.f);
-    addBall(world, balls, {400.f, 200.f}, 20.f, 1.f);
     
     //add a floor
     RigidBody RectBody({400.f, 500.f}, 0.f);
@@ -71,8 +67,28 @@ void render_scene() {
     while (window.isOpen()) {
         // ---------- Events ----------
         while (const auto event = window.pollEvent()) {
+
             if (event->is<sf::Event::Closed>()) {
                 window.close();
+            }
+
+            if (event->is<sf::Event::MouseButtonPressed>()) {
+
+                const auto* mouseEvent =
+                    event->getIf<sf::Event::MouseButtonPressed>();
+
+                if (mouseEvent->button == sf::Mouse::Button::Left) {
+
+                    auto mousePos = sf::Mouse::getPosition(window);
+                    
+                    addBall(
+                        world,
+                        balls,
+                        {static_cast<float>(mousePos.x), static_cast<float>(mousePos.y)},
+                        20.f,
+                        1.f
+                    );
+                }
             }
         }
         // ---------- Delta time ----------
