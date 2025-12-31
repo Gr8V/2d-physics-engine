@@ -4,11 +4,11 @@
 #include <random>
 #include <iostream>
 
-#include <Vec2.h>
-#include <math_utils.h>
-#include <physicsWorld.h>
-#include <deque>
-#include <objects.h>
+#include "math/Vec2.h"
+#include "math/math_utils.h"
+#include "physics/physicsWorld.h"
+#include "deque"
+#include "game/objects.h"
 
 // ------------------ Scene ------------------
 

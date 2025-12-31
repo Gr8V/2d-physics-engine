@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
-#include <rigidBody.h>
-#include <colliders.h>
+#include "physics/rigidBody.h"
+#include "physics/colliders.h"
 
 enum class ColliderType {
     Circle,

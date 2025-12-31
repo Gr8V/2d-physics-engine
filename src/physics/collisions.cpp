@@ -1,5 +1,5 @@
-#include <collisions.h>
-#include <math_utils.h>
+#include "physics/collisions.h"
+#include "math/math_utils.h"
 
 bool circleVsCircle(
     const Vec2& posA, const CircleCollider& a,

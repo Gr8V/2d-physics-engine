@@ -1,6 +1,6 @@
 #pragma once
-#include <Vec2.h>
-#include <colliders.h>
+#include "math/Vec2.h"
+#include "physics/colliders.h"
 
 bool circleVsCircle(
     const Vec2& posA, const CircleCollider& a,

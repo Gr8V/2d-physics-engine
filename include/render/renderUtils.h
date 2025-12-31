@@ -2,7 +2,7 @@
 
 #include <SFML/Graphics.hpp>
 #include <random>
-#include "Vec2.h"
+#include "math/Vec2.h"
 
 inline sf::Vector2f toSFML(const Vec2& v) {
     return { v.x, v.y };

@@ -1,8 +1,6 @@
 #include <iostream>
 #include <vector>
-#include <math.h>
-#include <Vec2.h>
-#include "render_sfml/render.cpp"
+#include "render/render.h"
 
 
 int main() {

@@ -1,5 +1,5 @@
 #pragma once
-#include <Vec2.h>
+#include "math/Vec2.h"
 
 struct RigidBody {
     Vec2 position;

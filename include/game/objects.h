@@ -3,8 +3,8 @@
 #include <SFML/Graphics.hpp>
 #include <deque>
 
-#include <Vec2.h>
-#include <physicsWorld.h>
+#include "math/Vec2.h"
+#include "physics/physicsWorld.h"
 
 struct Ball {
     RigidBody body;
