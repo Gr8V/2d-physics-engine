@@ -69,7 +69,7 @@ void render_scene() {
         world,
         rectangles,
         {-WALL_THICKNESS / 2, HEIGHT / 2},
-        WALL_THICKNESS / 2, HEIGHT / 2,
+        WALL_THICKNESS, HEIGHT,
         0.f
     );
     // Right Wall
@@ -77,7 +77,7 @@ void render_scene() {
         world,
         rectangles,
         {WIDTH + WALL_THICKNESS / 2, HEIGHT / 2},
-        WALL_THICKNESS / 2, HEIGHT / 2,
+        WALL_THICKNESS, HEIGHT,
         0.f
     );
 
