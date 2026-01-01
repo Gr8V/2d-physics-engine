@@ -38,14 +38,15 @@ void render_scene() {
     addBall(world, balls, {380.f, 150.f}, 25.f, 1.f);
     addBall(world, balls, {400.f, 200.f}, 25.f, 1.f);
     
-    //add a floor
-    RigidBody RectBody({400.f, 500.f}, 0.f);
-    BoxCollider RectCollider{400.f, 20.f};
-    world.add(&RectBody, &RectCollider);
-    sf::RectangleShape RectShape({RectCollider.halfWidth*2, RectCollider.halfHeight*2});
-    RectShape.setOrigin({RectCollider.halfWidth, RectCollider.halfHeight});
-    RectShape.setPosition({RectBody.position.x, RectBody.position.y});
-    RectShape.setFillColor(sf::Color::White);
+    //add a obstacle
+    addRectangle(
+        world,
+        rectangles,
+        {400.f, 350.f},
+        300.f,
+        20.f,
+        0.f
+    );
 
     RigidBody floorBody({WIDTH / 2, HEIGHT + WALL_THICKNESS / 2}, 0.f);
     BoxCollider floorCollider{WIDTH / 2, WALL_THICKNESS / 2};
@@ -136,8 +137,6 @@ void render_scene() {
             window.draw(ball.shape);
         for (auto& rect : rectangles)
             window.draw(rect.shape);
-
-        window.draw(RectShape);
         window.display();
     }
 }
