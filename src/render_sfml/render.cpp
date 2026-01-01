@@ -87,10 +87,11 @@ void render_scene() {
 
                     auto mousePos = sf::Mouse::getPosition(window);
                     
-                    addBall(
+                    addRectangle(
                         world,
-                        balls,
+                        rectangles,
                         {static_cast<float>(mousePos.x), static_cast<float>(mousePos.y)},
+                        50.f,
                         50.f,
                         1.f
                     );

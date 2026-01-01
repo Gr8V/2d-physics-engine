@@ -1,5 +1,6 @@
 #include "physics/physicsWorld.h"
 #include "math/math_utils.h"
+#include "physics/collisions.h"
 
 void PhysicsWorld::add(RigidBody* body, CircleCollider* collider)
 {
@@ -40,17 +41,41 @@ void PhysicsWorld::solveCollisions()
             if (A.type == ColliderType::Circle &&
                 B.type == ColliderType::Circle)
             {
-                resolveCircleCircle(A, B);
+                auto* cA = static_cast<CircleCollider*>(A.collider);
+                auto* cB = static_cast<CircleCollider*>(B.collider);
+                if (circleVsCircle(
+                    A.body->position, *cA,
+                    B.body->position, *cB))
+                {
+                    resolveCircleCircle(A, B);
+                }
+                
             }
             else if (A.type == ColliderType::Circle &&
                     B.type == ColliderType::Box)
             {
-                resolveCircleBox(A, B);
+                auto* c = static_cast<CircleCollider*>(A.collider);
+                auto* b = static_cast<BoxCollider*>(B.collider);
+
+                if (circleVsBox(
+                    A.body->position, c->radius,
+                    B.body->position, *b))
+                {
+                    resolveCircleBox(A, B);
+                }
             }
             else if (A.type == ColliderType::Box &&
                     B.type == ColliderType::Circle)
             {
-                resolveCircleBox(B, A); // swap
+                auto* c = static_cast<CircleCollider*>(B.collider);
+                auto* b = static_cast<BoxCollider*>(A.collider);
+
+                if (circleVsBox(
+                        B.body->position, c->radius,
+                        A.body->position, *b))
+                {
+                    resolveCircleBox(B, A); // swap for resolution too
+                }
             }
         }
     }
@@ -63,16 +88,20 @@ void PhysicsWorld::resolveCircleCircle(
     auto* cA = static_cast<CircleCollider*>(A.collider);
     auto* cB = static_cast<CircleCollider*>(B.collider);
 
+    // find distance between center of both circles
     Vec2 delta = B.body->position - A.body->position;
     float dist = delta.magnitude();
 
-    float penetration = (cA->radius + cB->radius) - dist;
-    if (penetration <= 0.f)
-        return;
-
+    // Normal
     Vec2 normal = (dist > 0.f) ? delta / dist : Vec2{1.f, 0.f};
 
-    float totalInvMass = A.body->invMass + B.body->invMass;
+    float penetration = (cA->radius + cB->radius) - dist;
+
+
+    //calculates total inv mass to check if both bodies are static
+    float invMassA = A.body->invMass;
+    float invMassB = B.body->invMass;
+    float totalInvMass = invMassA + invMassB;
     if (totalInvMass == 0.f)
         return;
 
@@ -85,12 +114,21 @@ void PhysicsWorld::resolveCircleCircle(
     Vec2 relativeVelocity = B.body->velocity - A.body->velocity;
     float vn = relativeVelocity.dot(normal);
 
-    // Only correct if moving toward each other
-    if (vn < 0.f) {
-        Vec2 impulse = normal * (vn / totalInvMass);
-        A.body->velocity += impulse * A.body->invMass;
-        B.body->velocity -= impulse * B.body->invMass;
+    if (vn >= 0.f)
+    {
+        return;
     }
+    
+    // bounciness
+    float restitution = 0.5f;
+
+    float j = -(1.f + restitution) * vn;
+    j /= totalInvMass;
+
+    Vec2 impulse = normal * j;
+    A.body->velocity -= impulse * invMassA;
+    B.body->velocity += impulse * invMassB;
+
 }
 
 
@@ -116,29 +154,45 @@ void PhysicsWorld::resolveCircleBox(
     Vec2 delta = cPos - closestPoint;
 
     float dist = delta.magnitude();
-    if (dist >= circle->radius)
-        return;
 
     Vec2 normal;
     float penetration;
 
-    if (dist == 0.f) {
-        normal = {0.f, -1.f}; // floor assumption
-        penetration = circle->radius;
-    } else {
+    if (dist > 0.f) {
         normal = delta / dist;
         penetration = circle->radius - dist;
+    } else {
+        // Circle center inside box
+        normal = {0.f, -1.f};
+        penetration = circle->radius;
     }
 
-    // positional correction (remove overlap)
-    circleObj.body->position += normal * penetration;
-    
-    // cancel velocity INTO the surface
-    float vn = circleObj.body->velocity.dot(normal);
+    float invMassC = circleObj.body->invMass;
+    float invMassB = boxObj.body->invMass;
+    float totalInvMass = invMassC + invMassB;
 
-    if (vn < 0.f) {
-        float restitution = 0.8f; // try 0.5–1.0
-        circleObj.body->velocity -= normal * (1.f + restitution) * vn;
-    }
+    if (totalInvMass == 0.f)
+        return;
 
+    // --- Position correction ---
+    Vec2 correction = normal * (penetration / totalInvMass);
+    circleObj.body->position += correction * invMassC;
+    boxObj.body->position    -= correction * invMassB;
+
+    // --- Velocity correction ---
+    Vec2 rv = circleObj.body->velocity - boxObj.body->velocity;
+    float vn = rv.dot(normal);
+
+    if (vn >= 0.f)
+        return;
+
+    float restitution = 0.5f;
+
+    float j = -(1.f + restitution) * vn;
+    j /= totalInvMass;
+
+    Vec2 impulse = normal * j;
+
+    circleObj.body->velocity += impulse * invMassC;
+    boxObj.body->velocity    -= impulse * invMassB;
 }
