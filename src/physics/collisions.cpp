@@ -28,3 +28,25 @@ bool circleVsBox(
 
     return delta.dot(delta) <= radius * radius;
 }
+
+bool AABBvsAABB(
+    const Vec2& posA, const BoxCollider& A,
+    const Vec2& posB, const BoxCollider& B
+) {
+    float leftA   = posA.x - A.halfWidth;
+    float rightA  = posA.x + A.halfWidth;
+    float topA    = posA.y - A.halfHeight;
+    float bottomA = posA.y + A.halfHeight;
+
+    float leftB   = posB.x - B.halfWidth;
+    float rightB  = posB.x + B.halfWidth;
+    float topB    = posB.y - B.halfHeight;
+    float bottomB = posB.y + B.halfHeight;
+
+    if (rightA  < leftB)   return false;
+    if (leftA   > rightB)  return false;
+    if (bottomA < topB)    return false;
+    if (topA    > bottomB) return false;
+
+    return true;
+}

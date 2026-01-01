@@ -42,7 +42,7 @@ void addRectangle(
     Rectangle& rectangle = rectangles.back();
 
     rectangle.shape.setOrigin({width/2, height/2});
-    rectangle.shape.setFillColor(sf::Color::Yellow);
+    rectangle.shape.setFillColor(sf::Color::White);
 
     world.add(&rectangle.body, &rectangle.collider);
 }

@@ -47,7 +47,7 @@ void PhysicsWorld::solveCollisions()
                     A.body->position, *cA,
                     B.body->position, *cB))
                 {
-                    resolveCircleCircle(A, B);
+                    resolveCircleVsCircle(A, B);
                 }
                 
             }
@@ -61,7 +61,7 @@ void PhysicsWorld::solveCollisions()
                     A.body->position, c->radius,
                     B.body->position, *b))
                 {
-                    resolveCircleBox(A, B);
+                    resolveCircleVsBox(A, B);
                 }
             }
             else if (A.type == ColliderType::Box &&
@@ -74,14 +74,27 @@ void PhysicsWorld::solveCollisions()
                         B.body->position, c->radius,
                         A.body->position, *b))
                 {
-                    resolveCircleBox(B, A); // swap for resolution too
+                    resolveCircleVsBox(B, A); // swap for resolution too
+                }
+            }
+            else if (A.type == ColliderType::Box &&
+                    B.type == ColliderType::Box)
+            {
+                auto* bA = static_cast<BoxCollider*>(A.collider);
+                auto* bB = static_cast<BoxCollider*>(B.collider);
+
+                if (AABBvsAABB(
+                        A.body->position, *bA,
+                        B.body->position, *bB))
+                {
+                    resolveAABBvsAABB(A, B);
                 }
             }
         }
     }
 }
 
-void PhysicsWorld::resolveCircleCircle(
+void PhysicsWorld::resolveCircleVsCircle(
     PhysicsObject& A,
     PhysicsObject& B)
 {
@@ -97,6 +110,8 @@ void PhysicsWorld::resolveCircleCircle(
 
     float penetration = (cA->radius + cB->radius) - dist;
 
+    if (penetration <= 0.f)
+        return;
 
     //calculates total inv mass to check if both bodies are static
     float invMassA = A.body->invMass;
@@ -132,7 +147,7 @@ void PhysicsWorld::resolveCircleCircle(
 }
 
 
-void PhysicsWorld::resolveCircleBox(
+void PhysicsWorld::resolveCircleVsBox(
     PhysicsObject& circleObj,
     PhysicsObject& boxObj)
 {
@@ -167,6 +182,9 @@ void PhysicsWorld::resolveCircleBox(
         penetration = circle->radius;
     }
 
+    if (penetration <= 0.f)
+        return;
+
     float invMassC = circleObj.body->invMass;
     float invMassB = boxObj.body->invMass;
     float totalInvMass = invMassC + invMassB;
@@ -195,4 +213,65 @@ void PhysicsWorld::resolveCircleBox(
 
     circleObj.body->velocity += impulse * invMassC;
     boxObj.body->velocity    -= impulse * invMassB;
+}
+
+void PhysicsWorld::resolveAABBvsAABB(
+    PhysicsObject& A,
+    PhysicsObject& B)
+{
+    auto* boxA = static_cast<BoxCollider*>(A.collider);
+    auto* boxB = static_cast<BoxCollider*>(B.collider);
+
+    Vec2 posA = A.body->position;
+    Vec2 posB = B.body->position;
+
+    float dx = posB.x - posA.x;
+    float px = (boxA->halfWidth + boxB->halfWidth) - std::abs(dx);
+
+    if (px <= 0.f) return;
+
+    float dy = posB.y - posA.y;
+    float py = (boxA->halfHeight + boxB->halfHeight) - std::abs(dy);
+
+    if (py <= 0.f) return;
+
+    Vec2 normal;
+    float penetration;
+
+    if (px < py) {
+        normal = { (dx < 0.f) ? -1.f : 1.f, 0.f };
+        penetration = px;
+    } else {
+        normal = { 0.f, (dy < 0.f) ? -1.f : 1.f };
+        penetration = py;
+    }
+
+    float invMassA = A.body->invMass;
+    float invMassB = B.body->invMass;
+    float totalInvMass = invMassA + invMassB;
+
+    if (totalInvMass == 0.f)
+        return;
+
+    // --- Position correction ---
+    Vec2 correction = normal * (penetration / totalInvMass);
+    A.body->position -= correction * invMassA;
+    B.body->position += correction * invMassB;
+
+    // --- Velocity correction ---
+    Vec2 rv = B.body->velocity - A.body->velocity;
+    float vn = rv.dot(normal);
+
+    if (vn >= 0.f)
+        return;
+
+    float restitution = 0.5f;
+
+    float j = -(1.f + restitution) * vn;
+    j /= totalInvMass;
+
+    Vec2 impulse = normal * j;
+
+    A.body->velocity -= impulse * invMassA;
+    B.body->velocity += impulse * invMassB;
 }

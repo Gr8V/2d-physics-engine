@@ -29,6 +29,7 @@ private:
     void integrate(float dt);
     void solveCollisions();
 
-    void resolveCircleCircle(PhysicsObject& A, PhysicsObject& B);
-    void resolveCircleBox(PhysicsObject& circle, PhysicsObject& box);
+    void resolveCircleVsCircle(PhysicsObject& A, PhysicsObject& B);
+    void resolveCircleVsBox(PhysicsObject& circle, PhysicsObject& box);
+    void resolveAABBvsAABB( PhysicsObject& A, PhysicsObject& B);
 };

@@ -33,10 +33,10 @@ void render_scene() {
     PhysicsWorld world;
     world.gravity = {0.f, 800.f};
 
-    addBall(world, balls, {340.f, 50.f}, 20.f, 1.f);
-    addBall(world, balls, {360.f, 100.f}, 20.f, 1.f);
-    addBall(world, balls, {380.f, 150.f}, 20.f, 1.f);
-    addBall(world, balls, {400.f, 200.f}, 20.f, 1.f);
+    addBall(world, balls, {340.f, 50.f}, 25.f, 1.f);
+    addBall(world, balls, {360.f, 100.f}, 25.f, 1.f);
+    addBall(world, balls, {380.f, 150.f}, 25.f, 1.f);
+    addBall(world, balls, {400.f, 200.f}, 25.f, 1.f);
     
     //add a floor
     RigidBody RectBody({400.f, 500.f}, 0.f);
@@ -84,15 +84,23 @@ void render_scene() {
                     event->getIf<sf::Event::MouseButtonPressed>();
 
                 if (mouseEvent->button == sf::Mouse::Button::Left) {
-
                     auto mousePos = sf::Mouse::getPosition(window);
-                    
                     addRectangle(
                         world,
                         rectangles,
                         {static_cast<float>(mousePos.x), static_cast<float>(mousePos.y)},
                         50.f,
                         50.f,
+                        1.f
+                    );
+                }
+                else if (mouseEvent->button == sf::Mouse::Button::Right) {
+                    auto mousePos = sf::Mouse::getPosition(window);
+                    addBall(
+                        world,
+                        balls,
+                        {static_cast<float>(mousePos.x), static_cast<float>(mousePos.y)},
+                        25.f,
                         1.f
                     );
                 }
