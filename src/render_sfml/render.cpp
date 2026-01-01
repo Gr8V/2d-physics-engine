@@ -48,24 +48,38 @@ void render_scene() {
         0.f
     );
 
-    RigidBody floorBody({WIDTH / 2, HEIGHT + WALL_THICKNESS / 2}, 0.f);
-    BoxCollider floorCollider{WIDTH / 2, WALL_THICKNESS / 2};
-    world.add(&floorBody, &floorCollider);
-
-    RigidBody ceilingBody({WIDTH / 2, -WALL_THICKNESS / 2}, 0.f);
-    BoxCollider ceilingCollider{WIDTH / 2, WALL_THICKNESS / 2};
-    world.add(&ceilingBody, &ceilingCollider);
-
-    RigidBody leftWallBody({-WALL_THICKNESS / 2, HEIGHT / 2}, 0.f);
-    BoxCollider leftWallCollider{WALL_THICKNESS / 2, HEIGHT / 2};
-    world.add(&leftWallBody, &leftWallCollider);
-
-    RigidBody rightWallBody({WIDTH + WALL_THICKNESS / 2, HEIGHT / 2}, 0.f);
-    BoxCollider rightWallCollider{WALL_THICKNESS / 2, HEIGHT / 2};
-    world.add(&rightWallBody, &rightWallCollider);
-
-
-
+    // Floor
+    addRectangle(
+        world,
+        rectangles,
+        {WIDTH / 2, HEIGHT + WALL_THICKNESS / 2},
+        WIDTH, WALL_THICKNESS,
+        0.f
+    );
+    // Ceiling
+    addRectangle(
+        world,
+        rectangles,
+        {WIDTH / 2, -WALL_THICKNESS / 2},
+        WIDTH, WALL_THICKNESS,
+        0.f
+    );
+    // Left Wall
+    addRectangle(
+        world,
+        rectangles,
+        {-WALL_THICKNESS / 2, HEIGHT / 2},
+        WALL_THICKNESS / 2, HEIGHT / 2,
+        0.f
+    );
+    // Right Wall
+    addRectangle(
+        world,
+        rectangles,
+        {WIDTH + WALL_THICKNESS / 2, HEIGHT / 2},
+        WALL_THICKNESS / 2, HEIGHT / 2,
+        0.f
+    );
 
     sf::Clock clock;
 
