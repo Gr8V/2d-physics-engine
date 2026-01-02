@@ -135,7 +135,7 @@ void PhysicsWorld::resolveCircleVsCircle(
     }
     
     // bounciness
-    float restitution = 0.5f;
+    float restitution = std::min(cA->restitution, cB->restitution);
 
     float j = -(1.f + restitution) * vn;
     j /= totalInvMass;
@@ -204,7 +204,7 @@ void PhysicsWorld::resolveCircleVsBox(
     if (vn >= 0.f)
         return;
 
-    float restitution = 0.5f;
+    float restitution = std::min(circle->restitution, box->restitution);
 
     float j = -(1.f + restitution) * vn;
     j /= totalInvMass;
@@ -219,19 +219,19 @@ void PhysicsWorld::resolveAABBvsAABB(
     PhysicsObject& A,
     PhysicsObject& B)
 {
-    auto* boxA = static_cast<BoxCollider*>(A.collider);
-    auto* boxB = static_cast<BoxCollider*>(B.collider);
+    auto* cA = static_cast<BoxCollider*>(A.collider);
+    auto* cB = static_cast<BoxCollider*>(B.collider);
 
     Vec2 posA = A.body->position;
     Vec2 posB = B.body->position;
 
     float dx = posB.x - posA.x;
-    float px = (boxA->halfWidth + boxB->halfWidth) - std::abs(dx);
+    float px = (cA->halfWidth + cB->halfWidth) - std::abs(dx);
 
     if (px <= 0.f) return;
 
     float dy = posB.y - posA.y;
-    float py = (boxA->halfHeight + boxB->halfHeight) - std::abs(dy);
+    float py = (cA->halfHeight + cB->halfHeight) - std::abs(dy);
 
     if (py <= 0.f) return;
 
@@ -265,7 +265,7 @@ void PhysicsWorld::resolveAABBvsAABB(
     if (vn >= 0.f)
         return;
 
-    float restitution = 0.5f;
+    float restitution = std::min(cA->restitution, cB->restitution);
 
     float j = -(1.f + restitution) * vn;
     j /= totalInvMass;
