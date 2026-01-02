@@ -1,6 +1,7 @@
 #include "physics/physicsWorld.h"
 #include "math/math_utils.h"
 #include "physics/collisions.h"
+#include <iostream>
 
 void PhysicsWorld::add(RigidBody* body, CircleCollider* collider)
 {
@@ -128,8 +129,8 @@ void PhysicsWorld::resolveCircleVsCircle(
     B.body->position += correction * B.body->invMass;
 
     // velocity correction (remove relative normal velocity)
-    Vec2 relativeVelocity = B.body->velocity - A.body->velocity;
-    float vn = relativeVelocity.dot(normal);
+    Vec2 rv = B.body->velocity - A.body->velocity;
+    float vn = rv.dot(normal);
 
     if (vn >= 0.f)
     {
@@ -138,14 +139,16 @@ void PhysicsWorld::resolveCircleVsCircle(
     
     // bounciness
     float restitution = std::min(cA->restitution, cB->restitution);
+    if (std::abs(vn) < 0.5f)
+        restitution = 0.f;
 
+    // IMPULSE
     float j = -(1.f + restitution) * vn;
     j /= totalInvMass;
 
     Vec2 impulse = normal * j;
     A.body->velocity -= impulse * invMassA;
     B.body->velocity += impulse * invMassB;
-
 }
 
 
@@ -208,8 +211,12 @@ void PhysicsWorld::resolveCircleVsBox(
     if (vn >= 0.f)
         return;
 
+    // Bounciness
     float restitution = std::min(circle->restitution, box->restitution);
+    if (std::abs(vn) < 0.5f)
+        restitution = 0.f;
 
+    // IMPULSE
     float j = -(1.f + restitution) * vn;
     j /= totalInvMass;
 
@@ -218,6 +225,7 @@ void PhysicsWorld::resolveCircleVsBox(
     circleObj.body->velocity += impulse * invMassC;
     boxObj.body->velocity    -= impulse * invMassB;
 }
+
 
 void PhysicsWorld::resolveAABBvsAABB(
     PhysicsObject& A,
@@ -271,8 +279,12 @@ void PhysicsWorld::resolveAABBvsAABB(
     if (vn >= 0.f)
         return;
 
+    // Bounciness
     float restitution = std::min(cA->restitution, cB->restitution);
+    if (std::abs(vn) < 0.5f)
+        restitution = 0.f;
 
+    // IMPULSE
     float j = -(1.f + restitution) * vn;
     j /= totalInvMass;
 

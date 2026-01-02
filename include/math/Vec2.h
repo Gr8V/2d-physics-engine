@@ -45,6 +45,10 @@ struct Vec2 {
         return std::sqrt(x * x + y * y);
     }
 
+    float magnitudeSquared() const {
+        return x * x + y * y;
+    }
+
     Vec2 normalized() const {
         float len = magnitude();
         if (len == 0) return {0, 0};
