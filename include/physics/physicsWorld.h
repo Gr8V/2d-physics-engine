@@ -18,6 +18,9 @@ class PhysicsWorld {
 public:
     Vec2 gravity = {0.f, 9.81f};
 
+    float penetrationPercent = 0.8f; // Baumgarte factor
+    float penetrationSlop    = 0.01f;
+
     void add(RigidBody* body, CircleCollider* collider);
     void add(RigidBody* body, BoxCollider* collider);
 

@@ -121,7 +121,9 @@ void PhysicsWorld::resolveCircleVsCircle(
         return;
 
     // positional correction
-    Vec2 correction = normal * (penetration / totalInvMass);
+    float correctionMag = std::max(penetration - penetrationSlop, 0.f)/ totalInvMass*penetrationPercent;
+
+    Vec2 correction = normal * correctionMag;
     A.body->position -= correction * A.body->invMass;
     B.body->position += correction * B.body->invMass;
 
@@ -193,7 +195,9 @@ void PhysicsWorld::resolveCircleVsBox(
         return;
 
     // --- Position correction ---
-    Vec2 correction = normal * (penetration / totalInvMass);
+    float correctionMag = std::max(penetration - penetrationSlop, 0.f)/ totalInvMass*penetrationPercent;
+
+    Vec2 correction = normal * correctionMag;
     circleObj.body->position += correction * invMassC;
     boxObj.body->position    -= correction * invMassB;
 
@@ -254,7 +258,9 @@ void PhysicsWorld::resolveAABBvsAABB(
         return;
 
     // --- Position correction ---
-    Vec2 correction = normal * (penetration / totalInvMass);
+    float correctionMag = std::max(penetration - penetrationSlop, 0.f)/ totalInvMass*penetrationPercent;
+
+    Vec2 correction = normal * correctionMag;
     A.body->position -= correction * invMassA;
     B.body->position += correction * invMassB;
 
