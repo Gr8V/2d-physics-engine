@@ -9,10 +9,11 @@
 #include "physics/physicsWorld.h"
 #include "deque"
 #include "game/objects.h"
+#include "render/render.h"
 
 // ------------------ Scene ------------------
 
-void render_scene() {
+void fallingObjectsDemo() {
 
     const float WIDTH  = 800.f;
     const float HEIGHT = 600.f;

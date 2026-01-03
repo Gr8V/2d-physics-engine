@@ -5,7 +5,7 @@
 
 int main() {
     
-    render_scene();
+    fallingObjectsDemo();
 
     return 0;
 }
