@@ -1,6 +1,8 @@
 #include "physics/physicsWorld.h"
 #include "math/math_utils.h"
 #include "physics/collisions.h"
+#include <algorithm>
+#include <cmath>
 #include <iostream>
 
 void PhysicsWorld::add(RigidBody* body, CircleCollider* collider)
@@ -149,6 +151,27 @@ void PhysicsWorld::resolveCircleVsCircle(
     Vec2 impulse = normal * j;
     A.body->velocity -= impulse * invMassA;
     B.body->velocity += impulse * invMassB;
+
+    // --- Friction (Coulomb) ---
+    Vec2 tangent = rv - normal * vn;
+    float tMag = tangent.magnitude();
+    if (tMag > 0.f) {
+        tangent = tangent / tMag;
+        float jt = -rv.dot(tangent);
+        jt /= totalInvMass;
+
+        float muS = std::sqrt(cA->staticFriction * cA->staticFriction + cB->staticFriction * cB->staticFriction);
+        float muD = std::sqrt(cA->dynamicFriction * cA->dynamicFriction + cB->dynamicFriction * cB->dynamicFriction);
+
+        Vec2 frictionImpulse;
+        if (std::abs(jt) < j * muS)
+            frictionImpulse = tangent * jt;
+        else
+            frictionImpulse = tangent * -j * muD;
+
+        A.body->velocity -= frictionImpulse * invMassA;
+        B.body->velocity += frictionImpulse * invMassB;
+    }
 }
 
 
@@ -222,8 +245,43 @@ void PhysicsWorld::resolveCircleVsBox(
 
     Vec2 impulse = normal * j;
 
+    // --- Apply normal impulse ---
     circleObj.body->velocity += impulse * invMassC;
     boxObj.body->velocity    -= impulse * invMassB;
+
+    // 🔴 RECOMPUTE RELATIVE VELOCITY AFTER NORMAL IMPULSE
+    rv = circleObj.body->velocity - boxObj.body->velocity;
+
+    // --- Friction (Coulomb) ---
+    Vec2 tangent = rv - normal * rv.dot(normal);
+    float tMag = tangent.magnitude();
+
+    if (tMag > 1e-6f)
+    {
+        tangent /= tMag;
+
+        float jt = -rv.dot(tangent);
+        jt /= totalInvMass;
+
+        float muS = std::sqrt(
+            circle->staticFriction * circle->staticFriction +
+            box->staticFriction * box->staticFriction
+        );
+
+        float muD = std::sqrt(
+            circle->dynamicFriction * circle->dynamicFriction +
+            box->dynamicFriction * box->dynamicFriction
+        );
+
+        Vec2 frictionImpulse;
+        if (std::abs(jt) < j * muS)
+            frictionImpulse = tangent * jt;
+        else
+            frictionImpulse = tangent * -j * muD;
+
+        circleObj.body->velocity += frictionImpulse * invMassC;
+        boxObj.body->velocity    -= frictionImpulse * invMassB;
+    }
 }
 
 
@@ -292,4 +350,25 @@ void PhysicsWorld::resolveAABBvsAABB(
 
     A.body->velocity -= impulse * invMassA;
     B.body->velocity += impulse * invMassB;
+
+    // --- Friction (Coulomb) ---
+    Vec2 tangent = rv - normal * vn;
+    float tMag = tangent.magnitude();
+    if (tMag > 0.f) {
+        tangent = tangent / tMag;
+        float jt = -rv.dot(tangent);
+        jt /= totalInvMass;
+
+        float muS = std::sqrt(cA->staticFriction * cA->staticFriction + cB->staticFriction * cB->staticFriction);
+        float muD = std::sqrt(cA->dynamicFriction * cA->dynamicFriction + cB->dynamicFriction * cB->dynamicFriction);
+
+        Vec2 frictionImpulse;
+        if (std::abs(jt) < j * muS)
+            frictionImpulse = tangent * jt;
+        else
+            frictionImpulse = tangent * -j * muD;
+
+        A.body->velocity -= frictionImpulse * invMassA;
+        B.body->velocity += frictionImpulse * invMassB;
+    }
 }

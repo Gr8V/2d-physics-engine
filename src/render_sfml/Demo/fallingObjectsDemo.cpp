@@ -27,18 +27,14 @@ void fallingObjectsDemo() {
 
     sf::RenderWindow window(
         sf::VideoMode(sf::Vector2u{800, 600}),
-        "SFML Multi-Ball Demo"
+        "SFML Falling Objects Demo"
     );
     window.setFramerateLimit(144);
 
     PhysicsWorld world;
     world.gravity = {0.f, 800.f};
 
-    addBall(world, balls, {340.f, 50.f}, 25.f, 1.f);
-    addBall(world, balls, {360.f, 100.f}, 25.f, 1.f);
-    addBall(world, balls, {380.f, 150.f}, 25.f, 1.f);
-    addBall(world, balls, {400.f, 200.f}, 25.f, 1.f);
-    
+
     //add a obstacle
     addRectangle(
         world,
