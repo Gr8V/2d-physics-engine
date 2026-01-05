@@ -9,3 +9,11 @@ float clamp(float v, float min, float max) {
         if (v > max) return max;
         return v;
 }
+
+Vec2 perp(const Vec2& v) {
+        return Vec2{-v.y, v.x};
+}
+
+float cross(const Vec2& a, const Vec2& b) {
+        return a.x * b.y - a.y * b.x;
+}

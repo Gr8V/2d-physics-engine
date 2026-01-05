@@ -7,11 +7,32 @@
 
 void PhysicsWorld::add(RigidBody* body, CircleCollider* collider)
 {
+    // --- inertia for circle ---
+    if (body->invMass == 0.f) {
+        body->inertia = 0.f;
+        body->invInertia = 0.f;
+    } else {
+        float r = collider->radius;
+        body->inertia = 0.5f * body->mass * r * r;
+        body->invInertia = 1.f / body->inertia;
+    }
+
     objects.push_back({ body, ColliderType::Circle, collider });
 }
 
 void PhysicsWorld::add(RigidBody* body, BoxCollider* collider)
 {
+    // --- inertia for box ---
+    if (body->invMass == 0.f) {
+        body->inertia = 0.f;
+        body->invInertia = 0.f;
+    } else {
+        float w = collider->halfWidth * 2.f;
+        float h = collider->halfHeight * 2.f;
+        body->inertia = (1.f / 12.f) * body->mass * (w*w + h*h);
+        body->invInertia = 1.f / body->inertia;
+    }
+
     objects.push_back({ body, ColliderType::Box, collider });
 }
 
@@ -96,7 +117,6 @@ void PhysicsWorld::solveCollisions()
         }
     }
 }
-
 void PhysicsWorld::resolveCircleVsCircle(
     PhysicsObject& A,
     PhysicsObject& B)
@@ -104,64 +124,92 @@ void PhysicsWorld::resolveCircleVsCircle(
     auto* cA = static_cast<CircleCollider*>(A.collider);
     auto* cB = static_cast<CircleCollider*>(B.collider);
 
-    // find distance between center of both circles
     Vec2 delta = B.body->position - A.body->position;
     float dist = delta.magnitude();
+    if (dist <= 0.f) return;
 
-    // Normal
-    Vec2 normal = (dist > 0.f) ? delta / dist : Vec2{1.f, 0.f};
-
+    Vec2 normal = delta / dist;
     float penetration = (cA->radius + cB->radius) - dist;
+    if (penetration <= 0.f) return;
 
-    if (penetration <= 0.f)
-        return;
-
-    //calculates total inv mass to check if both bodies are static
     float invMassA = A.body->invMass;
     float invMassB = B.body->invMass;
     float totalInvMass = invMassA + invMassB;
-    if (totalInvMass == 0.f)
-        return;
+    if (totalInvMass == 0.f) return;
 
-    // positional correction
-    float correctionMag = std::max(penetration - penetrationSlop, 0.f)/ totalInvMass*penetrationPercent;
+    // -------- CONTACT POINT --------
+    Vec2 contactPoint =
+        A.body->position + normal * cA->radius;
 
-    Vec2 correction = normal * correctionMag;
-    A.body->position -= correction * A.body->invMass;
-    B.body->position += correction * B.body->invMass;
+    Vec2 rA = contactPoint - A.body->position;
+    Vec2 rB = contactPoint - B.body->position;
 
-    // velocity correction (remove relative normal velocity)
-    Vec2 rv = B.body->velocity - A.body->velocity;
+    // -------- RELATIVE VELOCITY (WITH ROTATION) --------
+    Vec2 velA = A.body->velocity +
+                perp(rA) * A.body->angularVelocity;
+
+    Vec2 velB = B.body->velocity +
+                perp(rB) * B.body->angularVelocity;
+
+    Vec2 rv = velB - velA;
     float vn = rv.dot(normal);
 
-    if (vn >= 0.f)
-    {
-        return;
+    // -------- NORMAL IMPULSE --------
+    float j = 0.f;
+    if (vn < 0.f) {
+        float restitution = std::min(cA->restitution, cB->restitution);
+        if (std::abs(vn) < 0.3f) restitution = 0.f;
+
+        float rnA = cross(rA, normal);
+        float rnB = cross(rB, normal);
+
+        float denom =
+            invMassA + invMassB +
+            rnA * rnA * A.body->invInertia +
+            rnB * rnB * B.body->invInertia;
+
+        j = -(1.f + restitution) * vn / denom;
+
+        Vec2 impulse = normal * j;
+        A.body->velocity -= impulse * invMassA;
+        B.body->velocity += impulse * invMassB;
     }
-    
-    // bounciness
-    float restitution = std::min(cA->restitution, cB->restitution);
-    if (std::abs(vn) < 0.5f)
-        restitution = 0.f;
 
-    // IMPULSE
-    float j = -(1.f + restitution) * vn;
-    j /= totalInvMass;
+    // -------- FRICTION --------
+    Vec2 velA2 = A.body->velocity +
+                 perp(rA) * A.body->angularVelocity;
 
-    Vec2 impulse = normal * j;
-    A.body->velocity -= impulse * invMassA;
-    B.body->velocity += impulse * invMassB;
+    Vec2 velB2 = B.body->velocity +
+                 perp(rB) * B.body->angularVelocity;
 
-    // --- Friction (Coulomb) ---
-    Vec2 tangent = rv - normal * vn;
+    Vec2 rv2 = velB2 - velA2;
+    float vn2 = rv2.dot(normal);
+
+    Vec2 tangent = rv2 - normal * vn2;
     float tMag = tangent.magnitude();
-    if (tMag > 0.f) {
-        tangent = tangent / tMag;
-        float jt = -rv.dot(tangent);
-        jt /= totalInvMass;
 
-        float muS = std::sqrt(cA->staticFriction * cA->staticFriction + cB->staticFriction * cB->staticFriction);
-        float muD = std::sqrt(cA->dynamicFriction * cA->dynamicFriction + cB->dynamicFriction * cB->dynamicFriction);
+    if (tMag > 1e-4f) {
+        tangent /= tMag;
+
+        float jt = -rv2.dot(tangent);
+
+        float rtA = cross(rA, tangent);
+        float rtB = cross(rB, tangent);
+
+        float denomT =
+            invMassA + invMassB +
+            rtA * rtA * A.body->invInertia +
+            rtB * rtB * B.body->invInertia;
+
+        jt /= denomT;
+
+        float muS = std::sqrt(
+            cA->staticFriction * cA->staticFriction +
+            cB->staticFriction * cB->staticFriction);
+
+        float muD = std::sqrt(
+            cA->dynamicFriction * cA->dynamicFriction +
+            cB->dynamicFriction * cB->dynamicFriction);
 
         Vec2 frictionImpulse;
         if (std::abs(jt) < j * muS)
@@ -171,7 +219,22 @@ void PhysicsWorld::resolveCircleVsCircle(
 
         A.body->velocity -= frictionImpulse * invMassA;
         B.body->velocity += frictionImpulse * invMassB;
+
+        // 🔥 TORQUE FROM FRICTION
+        A.body->angularVelocity -=
+            cross(rA, frictionImpulse) * A.body->invInertia;
+        B.body->angularVelocity +=
+            cross(rB, frictionImpulse) * B.body->invInertia;
     }
+
+    // -------- POSITION CORRECTION --------
+    float correctionMag =
+        std::max(penetration - penetrationSlop, 0.f) /
+        totalInvMass * penetrationPercent;
+
+    Vec2 correction = normal * correctionMag;
+    A.body->position -= correction * invMassA;
+    B.body->position += correction * invMassB;
 }
 
 
@@ -179,99 +242,99 @@ void PhysicsWorld::resolveCircleVsBox(
     PhysicsObject& circleObj,
     PhysicsObject& boxObj)
 {
-    auto* circle = static_cast<CircleCollider*>(circleObj.collider);
-    auto* box    = static_cast<BoxCollider*>(boxObj.collider);
+    auto* cC = static_cast<CircleCollider*>(circleObj.collider);
+    auto* cB = static_cast<BoxCollider*>(boxObj.collider);
 
     Vec2 cPos = circleObj.body->position;
     Vec2 bPos = boxObj.body->position;
 
-    float left   = bPos.x - box->halfWidth;
-    float right  = bPos.x + box->halfWidth;
-    float top    = bPos.y - box->halfHeight;
-    float bottom = bPos.y + box->halfHeight;
+    float left   = bPos.x - cB->halfWidth;
+    float right  = bPos.x + cB->halfWidth;
+    float top    = bPos.y - cB->halfHeight;
+    float bottom = bPos.y + cB->halfHeight;
 
     float closestX = clamp(cPos.x, left, right);
     float closestY = clamp(cPos.y, top, bottom);
 
-    Vec2 closestPoint{ closestX, closestY };
-    Vec2 delta = cPos - closestPoint;
-
+    Vec2 closest{ closestX, closestY };
+    Vec2 delta = cPos - closest;
     float dist = delta.magnitude();
 
     Vec2 normal;
     float penetration;
 
-    if (dist > 0.f) {
+    if (dist > 1e-6f) {
         normal = delta / dist;
-        penetration = circle->radius - dist;
+        penetration = cC->radius - dist;
     } else {
-        // Circle center inside box
-        normal = {0.f, -1.f};
-        penetration = circle->radius;
+        float dxL = cPos.x - left;
+        float dxR = right - cPos.x;
+        float dyT = cPos.y - top;
+        float dyB = bottom - cPos.y;
+
+        float minX = std::min(dxL, dxR);
+        float minY = std::min(dyT, dyB);
+
+        if (minX < minY) {
+            normal = (dxL < dxR) ? Vec2{-1,0} : Vec2{1,0};
+            penetration = cC->radius + minX;
+        } else {
+            normal = (dyT < dyB) ? Vec2{0,-1} : Vec2{0,1};
+            penetration = cC->radius + minY;
+        }
     }
 
-    if (penetration <= 0.f)
-        return;
+    if (penetration <= 0.f) return;
+
+    Vec2 contactPoint = closest;
 
     float invMassC = circleObj.body->invMass;
     float invMassB = boxObj.body->invMass;
     float totalInvMass = invMassC + invMassB;
+    if (totalInvMass == 0.f) return;
 
-    if (totalInvMass == 0.f)
-        return;
+    // ---------- RELATIVE VELOCITY (WITH ROTATION) ----------
+    Vec2 rC = contactPoint - circleObj.body->position;
+    Vec2 velC = circleObj.body->velocity +
+                perp(rC) * circleObj.body->angularVelocity;
+    Vec2 velB = boxObj.body->velocity;
 
-    // --- Position correction ---
-    float correctionMag = std::max(penetration - penetrationSlop, 0.f)/ totalInvMass*penetrationPercent;
-
-    Vec2 correction = normal * correctionMag;
-    circleObj.body->position += correction * invMassC;
-    boxObj.body->position    -= correction * invMassB;
-
-    // --- Velocity correction ---
-    Vec2 rv = circleObj.body->velocity - boxObj.body->velocity;
+    Vec2 rv = velC - velB;
     float vn = rv.dot(normal);
 
-    if (vn >= 0.f)
-        return;
+    // ---------- NORMAL IMPULSE ----------
+    float j = 0.f;
+    if (vn < 0.f) {
+        float restitution = std::min(cC->restitution, cB->restitution);
+        if (std::abs(vn) < 0.3f) restitution = 0.f;
 
-    // Bounciness
-    float restitution = std::min(circle->restitution, box->restitution);
-    if (std::abs(vn) < 0.5f)
-        restitution = 0.f;
+        j = -(1.f + restitution) * vn / totalInvMass;
 
-    // IMPULSE
-    float j = -(1.f + restitution) * vn;
-    j /= totalInvMass;
+        Vec2 impulse = normal * j;
+        circleObj.body->velocity += impulse * invMassC;
+        boxObj.body->velocity    -= impulse * invMassB;
+    }
 
-    Vec2 impulse = normal * j;
+    // ---------- FRICTION ----------
+    Vec2 velC2 = circleObj.body->velocity +
+                 perp(rC) * circleObj.body->angularVelocity;
+    Vec2 rv2 = velC2 - velB;
+    float vn2 = rv2.dot(normal);
 
-    // --- Apply normal impulse ---
-    circleObj.body->velocity += impulse * invMassC;
-    boxObj.body->velocity    -= impulse * invMassB;
-
-    // 🔴 RECOMPUTE RELATIVE VELOCITY AFTER NORMAL IMPULSE
-    rv = circleObj.body->velocity - boxObj.body->velocity;
-
-    // --- Friction (Coulomb) ---
-    Vec2 tangent = rv - normal * rv.dot(normal);
+    Vec2 tangent = rv2 - normal * vn2;
     float tMag = tangent.magnitude();
 
-    if (tMag > 1e-6f)
-    {
+    if (tMag > 1e-4f) {
         tangent /= tMag;
 
-        float jt = -rv.dot(tangent);
-        jt /= totalInvMass;
+        float jt = -rv2.dot(tangent) / totalInvMass;
 
         float muS = std::sqrt(
-            circle->staticFriction * circle->staticFriction +
-            box->staticFriction * box->staticFriction
-        );
-
+            cC->staticFriction*cC->staticFriction +
+            cB->staticFriction*cB->staticFriction);
         float muD = std::sqrt(
-            circle->dynamicFriction * circle->dynamicFriction +
-            box->dynamicFriction * box->dynamicFriction
-        );
+            cC->dynamicFriction*cC->dynamicFriction +
+            cB->dynamicFriction*cB->dynamicFriction);
 
         Vec2 frictionImpulse;
         if (std::abs(jt) < j * muS)
@@ -281,8 +344,23 @@ void PhysicsWorld::resolveCircleVsBox(
 
         circleObj.body->velocity += frictionImpulse * invMassC;
         boxObj.body->velocity    -= frictionImpulse * invMassB;
+
+        // 🔥 TORQUE FROM FRICTION
+        float torque = cross(rC, frictionImpulse);
+        circleObj.body->angularVelocity +=
+            torque * circleObj.body->invInertia;
     }
+
+    // ---------- POSITION CORRECTION ----------
+    float correctionMag =
+        std::max(penetration - penetrationSlop, 0.f) /
+        totalInvMass * penetrationPercent;
+
+    Vec2 correction = normal * correctionMag;
+    circleObj.body->position += correction * invMassC;
+    boxObj.body->position    -= correction * invMassB;
 }
+
 
 
 void PhysicsWorld::resolveAABBvsAABB(
@@ -297,12 +375,10 @@ void PhysicsWorld::resolveAABBvsAABB(
 
     float dx = posB.x - posA.x;
     float px = (cA->halfWidth + cB->halfWidth) - std::abs(dx);
-
     if (px <= 0.f) return;
 
     float dy = posB.y - posA.y;
     float py = (cA->halfHeight + cB->halfHeight) - std::abs(dy);
-
     if (py <= 0.f) return;
 
     Vec2 normal;
@@ -319,48 +395,44 @@ void PhysicsWorld::resolveAABBvsAABB(
     float invMassA = A.body->invMass;
     float invMassB = B.body->invMass;
     float totalInvMass = invMassA + invMassB;
+    if (totalInvMass == 0.f) return;
 
-    if (totalInvMass == 0.f)
-        return;
-
-    // --- Position correction ---
-    float correctionMag = std::max(penetration - penetrationSlop, 0.f)/ totalInvMass*penetrationPercent;
-
-    Vec2 correction = normal * correctionMag;
-    A.body->position -= correction * invMassA;
-    B.body->position += correction * invMassB;
-
-    // --- Velocity correction ---
+    // ---------- NORMAL IMPULSE ----------
     Vec2 rv = B.body->velocity - A.body->velocity;
     float vn = rv.dot(normal);
 
-    if (vn >= 0.f)
-        return;
+    float j = 0.f;
+    if (vn < 0.f) {
+        float restitution = std::min(cA->restitution, cB->restitution);
+        if (std::abs(vn) < 0.3f) restitution = 0.f;
 
-    // Bounciness
-    float restitution = std::min(cA->restitution, cB->restitution);
-    if (std::abs(vn) < 0.5f)
-        restitution = 0.f;
+        j = -(1.f + restitution) * vn / totalInvMass;
 
-    // IMPULSE
-    float j = -(1.f + restitution) * vn;
-    j /= totalInvMass;
+        Vec2 impulse = normal * j;
+        A.body->velocity -= impulse * invMassA;
+        B.body->velocity += impulse * invMassB;
+    }
 
-    Vec2 impulse = normal * j;
+    // ---------- FRICTION ----------
+    rv = B.body->velocity - A.body->velocity;
+    float vn2 = rv.dot(normal);
 
-    A.body->velocity -= impulse * invMassA;
-    B.body->velocity += impulse * invMassB;
-
-    // --- Friction (Coulomb) ---
-    Vec2 tangent = rv - normal * vn;
+    Vec2 tangent = rv - normal * vn2;
     float tMag = tangent.magnitude();
-    if (tMag > 0.f) {
-        tangent = tangent / tMag;
-        float jt = -rv.dot(tangent);
-        jt /= totalInvMass;
 
-        float muS = std::sqrt(cA->staticFriction * cA->staticFriction + cB->staticFriction * cB->staticFriction);
-        float muD = std::sqrt(cA->dynamicFriction * cA->dynamicFriction + cB->dynamicFriction * cB->dynamicFriction);
+    const float TANGENT_EPS = 1e-4f;
+    if (tMag > TANGENT_EPS) {
+        tangent /= tMag;
+
+        float jt = -rv.dot(tangent) / totalInvMass;
+
+        float muS = std::sqrt(
+            cA->staticFriction * cA->staticFriction +
+            cB->staticFriction * cB->staticFriction);
+
+        float muD = std::sqrt(
+            cA->dynamicFriction * cA->dynamicFriction +
+            cB->dynamicFriction * cB->dynamicFriction);
 
         Vec2 frictionImpulse;
         if (std::abs(jt) < j * muS)
@@ -371,4 +443,13 @@ void PhysicsWorld::resolveAABBvsAABB(
         A.body->velocity -= frictionImpulse * invMassA;
         B.body->velocity += frictionImpulse * invMassB;
     }
+
+    // ---------- POSITION CORRECTION (LAST) ----------
+    float correctionMag =
+        std::max(penetration - penetrationSlop, 0.f) /
+        totalInvMass * penetrationPercent;
+
+    Vec2 correction = normal * correctionMag;
+    A.body->position -= correction * invMassA;
+    B.body->position += correction * invMassB;
 }

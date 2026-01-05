@@ -21,6 +21,7 @@ void RigidBody::integrate(float dt)
     // semi-implicit Euler (good default)
     velocity += acceleration * dt;
     position += velocity * dt;
+    rotation += angularVelocity * dt;
 
     // clear forces
     force = {0, 0};
