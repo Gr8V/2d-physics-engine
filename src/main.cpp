@@ -1,11 +1,11 @@
 #include <iostream>
 #include <vector>
-#include "render/render.h"
+#include "test/tests.h"
 
 
 int main() {
     
-    fallingObjectsDemo();
+    restingStabilityTest();
 
     return 0;
 }
