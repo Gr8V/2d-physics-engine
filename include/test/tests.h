@@ -1,3 +1,5 @@
 #pragma once
 
-void restingStabilityTest();
+void stackingTest();
+void restitutionTest();
+void rollingTest();

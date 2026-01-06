@@ -13,7 +13,7 @@
 
 // ------------------ Scene ------------------
 
-void restingStabilityTest() {
+void stackingTest() {
 
     const float WIDTH  = 800.f;
     const float HEIGHT = 600.f;

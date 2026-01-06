@@ -6,7 +6,7 @@
 
 int main() {
     
-    fallingObjectsDemo();
+    rollingTest();
 
     return 0;
 }
