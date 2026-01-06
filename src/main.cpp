@@ -6,7 +6,7 @@
 
 int main() {
     
-    rollingTest();
+    penetrationTest();
 
     return 0;
 }
