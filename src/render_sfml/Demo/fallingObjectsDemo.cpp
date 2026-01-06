@@ -42,7 +42,8 @@ void fallingObjectsDemo() {
         {400.f, 350.f},
         300.f,
         20.f,
-        0.f
+        0.f,
+        sf::Color::White
     );
 
     // Floor
@@ -103,7 +104,8 @@ void fallingObjectsDemo() {
                         {static_cast<float>(mousePos.x), static_cast<float>(mousePos.y)},
                         50.f,
                         50.f,
-                        1.f
+                        1.f,
+                        sf::Color::Red
                     );
                 }
                 else if (mouseEvent->button == sf::Mouse::Button::Right) {
@@ -113,7 +115,8 @@ void fallingObjectsDemo() {
                         balls,
                         {static_cast<float>(mousePos.x), static_cast<float>(mousePos.y)},
                         25.f,
-                        1.f
+                        1.f,
+                        sf::Color::Cyan
                     );
                 }
             }

@@ -18,5 +18,9 @@ struct RigidBody {
     RigidBody(const Vec2& pos, float m);
 
     void applyForce(const Vec2& f);
+    void applyImpulse(
+        const Vec2& impulse,
+        const Vec2& contactVector
+    );
     void integrate(float dt);
 };

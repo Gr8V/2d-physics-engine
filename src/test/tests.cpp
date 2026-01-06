@@ -41,7 +41,8 @@ void restingStabilityTest() {
         {400.f, 160.f},
         300.f,
         20.f,
-        1.f
+        1.f,
+        sf::Color::White
     );
     addRectangle(
         world,
@@ -49,7 +50,8 @@ void restingStabilityTest() {
         {300.f, 260.f},
         100.f,
         60.f,
-        1.f
+        1.f,
+        sf::Color::Blue
     );
     addRectangle(
         world,
@@ -57,7 +59,8 @@ void restingStabilityTest() {
         {500.f, 260.f},
         100.f,
         60.f,
-        1.f
+        1.f,
+        sf::Color::Blue
     );
     addRectangle(
         world,
@@ -65,7 +68,8 @@ void restingStabilityTest() {
         {400.f, 360.f},
         300.f,
         20.f,
-        1.f
+        1.f,
+        sf::Color::Red
     );
     addRectangle(
         world,
@@ -73,7 +77,8 @@ void restingStabilityTest() {
         {400.f, 420.f},
         100.f,
         60.f,
-        1.f
+        1.f,
+        sf::Color::Green
     );
 
     // Floor

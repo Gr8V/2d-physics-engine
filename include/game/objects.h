@@ -17,7 +17,10 @@ void addBall(
     std::deque<Ball>& balls,
     Vec2 position,
     float radius,
-    float mass
+    float mass,
+    const sf::Color& color = sf::Color::Transparent,
+    Vec2 initalVelocity = {0.f, 0.f},
+    float restitution = 0.5f
 );
 
 struct Rectangle {
@@ -32,5 +35,8 @@ void addRectangle(
     Vec2 position,
     float width,
     float height,
-    float mass
+    float mass,
+    const sf::Color& color = sf::Color::Transparent,
+    Vec2 initialVelocity = {0.f, 0.f},
+    float restitution = 0.5f
 );
